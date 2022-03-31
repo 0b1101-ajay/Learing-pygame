@@ -8,6 +8,7 @@ pygame.init()
 DISPLAY_SURF = pygame.display.set_mode((1280, 720))
 pygame.display.set_caption('Shooter')
 clock = pygame.time.Clock()
+pygame.mouse.set_visible(False)
 
 wood_bg = pygame.image.load('Shooting Range assets/Wood_BG.png')
 land_bg = pygame.image.load('Shooting Range assets/Land_BG.png')
@@ -21,6 +22,9 @@ land_pos_Y = 560
 land_speed = 1
 water_pos_Y = 600
 water_speed = 0.5
+game_font = pygame.font.Font(None, 100)
+text_surface = game_font.render('You W0N', True, (255, 85, 85))
+
 duck_list = []
 for duck in range(20):
     duck_pos_X = random.randrange(50, 1200)
@@ -36,8 +40,15 @@ while True:  # main game loop
 
         if event.type == pygame.MOUSEMOTION:
             crosshair_rect = crosshair.get_rect(center=event.pos)
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for index, duck_rect in enumerate(duck_list):
+                # if crosshair_rect.colliderect(duck_rect):
+                if duck_rect.collidepoint(event.pos):
+                    del duck_list[index]
 
     DISPLAY_SURF.blit(wood_bg, (0, 0))
+    for duck_rect in duck_list:
+        DISPLAY_SURF.blit(duck_surface, duck_rect)
     if land_pos_Y <= 520 or land_pos_Y >= 620:
         land_speed *= -1
     land_pos_Y -= land_speed
@@ -48,16 +59,14 @@ while True:  # main game loop
 
     DISPLAY_SURF.blit(land_bg, (0, land_pos_Y))
     DISPLAY_SURF.blit(water_bg, (0, water_pos_Y))
-
-    for duck_rect in duck_list:
-        DISPLAY_SURF.blit(duck_surface, duck_rect)
-        
-    DISPLAY_SURF.blit(crosshair, crosshair_rect)
     DISPLAY_SURF.blit(cloud1, (100, 20))
     DISPLAY_SURF.blit(cloud2, (200, 20))
     DISPLAY_SURF.blit(cloud1, (500, 20))
     DISPLAY_SURF.blit(cloud2, (650, 20))
     DISPLAY_SURF.blit(cloud1, (1000, 20))
+    DISPLAY_SURF.blit(crosshair, crosshair_rect)
 
+    if len(duck_list) == 0:
+        DISPLAY_SURF.blit(text_surface, (500, 330))
     pygame.display.update()
     clock.tick(120)
