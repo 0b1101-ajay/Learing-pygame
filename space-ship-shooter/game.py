@@ -37,6 +37,18 @@ class Meteor(pygame.sprite.Sprite):
         self.rect.centerx += self.x_speed
         self.rect.centery += self.y_speed
 
+        if self.rect.centery >= 800:
+            self.kill()
+
+
+class Laser(pygame.sprite.Sprite):
+    def __init__(self, path, pos, speed):
+        super().__init__()
+        self.image = pygame.image.load(path)
+        self.rect = self.image.get_rect(center=pos)
+
+    def update(self):
+        self.rect.centery -= self.speed
 
 pygame.init()
 
@@ -48,15 +60,27 @@ spaceship = SpaceShip('Meteor Dodger Assets/spaceship.png', 640, 500, 2)
 spaceship_group = pygame.sprite.GroupSingle()
 spaceship_group.add(spaceship)
 
-meteor = Meteor('Meteor Dodger Assets/Meteor1.png', 100, 100, 2, 2)
 meteor_group = pygame.sprite.Group()
-meteor_group.add(meteor)
+laser_group = pygame.sprite.Group()
+
+METEOR_EVENT = pygame.USEREVENT
+pygame.time.set_timer(METEOR_EVENT, 250)
 
 while True:  # main game loop
     for event in pygame.event.get():
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
+
+        if event.type == METEOR_EVENT:
+            meteor_path = random.choice(('Meteor Dodger Assets/Meteor1.png', 'Meteor Dodger Assets/Meteor2.png',
+                                         'Meteor Dodger Assets/Meteor3.png'))
+            random_xpos = random.randrange(0, 1280)
+            random_ypos = random.randrange(-500, -50)
+            random_xspeed = random.randrange(-1, 1)
+            random_yspeed = random.randrange(4, 10)
+            meteor = Meteor(meteor_path, random_xpos, random_ypos, random_xspeed, random_yspeed)
+            meteor_group.add(meteor)
 
     DISPLAY_SURF.fill((80, 125, 230))
     spaceship_group.draw(DISPLAY_SURF)
