@@ -9,10 +9,13 @@ class SpaceShip(pygame.sprite.Sprite):
         super().__init__()
         self.image = pygame.image.load(path)
         self.rect = self.image.get_rect(center=(x_pos, y_pos))
+        self.shield_surface = pygame.image.load('Meteor Dodger Assets/shield.png')
+        self.health = 5
 
     def update(self):
         self.rect.center = pygame.mouse.get_pos()
         self.screen_constraint()
+        self.display_health()
 
     def screen_constraint(self):
         if self.rect.right >= 1280:
@@ -23,6 +26,10 @@ class SpaceShip(pygame.sprite.Sprite):
             self.rect.top = 0
         if self.rect.bottom >= 720:
             self.rect.bottom = 720
+
+    def display_health(self):
+        for index, shield in enumerate(range(self.health)):
+            DISPLAY_SURF.blit(self.shield_surface, (index * 40 + 10, 10))
 
 
 class Meteor(pygame.sprite.Sprite):
@@ -44,11 +51,15 @@ class Meteor(pygame.sprite.Sprite):
 class Laser(pygame.sprite.Sprite):
     def __init__(self, path, pos, speed):
         super().__init__()
+        self.speed = speed
         self.image = pygame.image.load(path)
         self.rect = self.image.get_rect(center=pos)
 
     def update(self):
-        self.rect.centery -= self.speed
+        self.rect.y -= self.speed
+        if self.rect.y <= -100:
+            self.kill()
+
 
 pygame.init()
 
@@ -60,9 +71,9 @@ spaceship = SpaceShip('Meteor Dodger Assets/spaceship.png', 640, 500, 2)
 spaceship_group = pygame.sprite.GroupSingle()
 spaceship_group.add(spaceship)
 
-meteor_group = pygame.sprite.Group()
 laser_group = pygame.sprite.Group()
 
+meteor_group = pygame.sprite.Group()
 METEOR_EVENT = pygame.USEREVENT
 pygame.time.set_timer(METEOR_EVENT, 250)
 
@@ -82,9 +93,17 @@ while True:  # main game loop
             meteor = Meteor(meteor_path, random_xpos, random_ypos, random_xspeed, random_yspeed)
             meteor_group.add(meteor)
 
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            new_laser = Laser('Meteor Dodger Assets/Laser.png', event.pos, 5)
+            laser_group.add(new_laser)
+
     DISPLAY_SURF.fill((80, 125, 230))
+
+    laser_group.draw(DISPLAY_SURF)
     spaceship_group.draw(DISPLAY_SURF)
     meteor_group.draw(DISPLAY_SURF)
+
+    laser_group.update()
     spaceship_group.update()
     meteor_group.update(1, 1)
     pygame.display.update()
