@@ -63,12 +63,33 @@ class Laser(pygame.sprite.Sprite):
         if self.rect.y <= -100:
             self.kill()
 
+def main_game():
+    laser_group.draw(DISPLAY_SURF)
+    spaceship_group.draw(DISPLAY_SURF)
+    meteor_group.draw(DISPLAY_SURF)
+
+    laser_group.update()
+    spaceship_group.update()
+    meteor_group.update(1, 1)
+
+    # collision
+    if pygame.sprite.spritecollide(spaceship_group.sprite, meteor_group, True):
+        spaceship_group.sprite.get_damage(1)
+
+    for laser in laser_group:
+        pygame.sprite.spritecollide(laser, meteor_group, True)
+
+def end_game():
+    text_surface = game_font.render('Game Over', True, (200, 170, 130))
+    text_rect = text_surface.get_rect(centre = (600, 1000))
+    DISPLAY_SURF.blit(text_surface,text_rect)
 
 pygame.init()
 
 DISPLAY_SURF = pygame.display.set_mode((1280, 720))
 pygame.display.set_caption('Space Ship Shooter')
 clock = pygame.time.Clock()
+game_font = pygame.font.Font(None, 40)
 
 spaceship = SpaceShip('Meteor Dodger Assets/spaceship.png', 640, 500, 2)
 spaceship_group = pygame.sprite.GroupSingle()
@@ -101,22 +122,13 @@ while True:  # main game loop
             laser_group.add(new_laser)
 
     DISPLAY_SURF.fill((80, 125, 230))
+    if spaceship_group.sprite.health > 0:
+        main_game()
 
-    laser_group.draw(DISPLAY_SURF)
-    spaceship_group.draw(DISPLAY_SURF)
-    meteor_group.draw(DISPLAY_SURF)
-
-    laser_group.update()
-    spaceship_group.update()
-    meteor_group.update(1, 1)
-
-    # collision
-    if pygame.sprite.spritecollide(spaceship_group.sprite, meteor_group, True):
-        spaceship_group.sprite.get_damage(1)
-
-    for laser in laser_group:
-        pygame.sprite.spritecollide(laser, meteor_group, True)
+    else:
+        end_game()
 
 
     pygame.display.update()
     clock.tick(120)
+
