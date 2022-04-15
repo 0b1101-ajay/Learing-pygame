@@ -1,134 +1,167 @@
-import pygame
-import sys
-import random
-from pygame.locals import *
+import pygame, sys, random
 
 
 class SpaceShip(pygame.sprite.Sprite):
-    def __init__(self, path, x_pos, y_pos, speed):
+    def __init__(self, path, pos_x, pos_y, speed):
         super().__init__()
         self.image = pygame.image.load(path)
-        self.rect = self.image.get_rect(center=(x_pos, y_pos))
-        self.shield_surface = pygame.image.load('Meteor Dodger Assets/shield.png')
-        self.health = 5
+        self.rect = self.image.get_rect(center=(pos_x, pos_y))
+        self.speed = speed
+        self.movement = 0
+        self.shields = 5
+        self.shield_image = pygame.image.load('Meteor Dodger Assets/shield.png')
 
     def update(self):
-        self.rect.center = pygame.mouse.get_pos()
-        self.screen_constraint()
-        self.display_health()
+        global game_state, game_score
+        self.rect.x += self.movement
+        self.health_check()
 
-    def screen_constraint(self):
-        if self.rect.right >= 1280:
-            self.rect.right = 1280
-        if self.rect.left <= 0:
-            self.rect.left = 0
-        if self.rect.top <= 0:
-            self.rect.top = 0
-        if self.rect.bottom >= 720:
-            self.rect.bottom = 720
+        if self.shields <= 0:
+            game_state = 'Score'
+            game_score = pygame.time.get_ticks()
 
-    def display_health(self):
-        for index, shield in enumerate(range(self.health)):
-            DISPLAY_SURF.blit(self.shield_surface, (index * 40 + 10, 10))
+    def health_check(self):
+        for index, shield in enumerate(range(self.shields)):
+            screen.blit(self.shield_image, (10 + index * 40, 10))
 
-    def get_damage(self, damage_amount):
-        self.health -= damage_amount
+    def damage(self):
+        self.shields -= 1
 
+    def charged_laser(self):
+        self.image = pygame.image.load("Meteor Dodger Assets/ship_orange_charged.png")
 
-class Meteor(pygame.sprite.Sprite):
-    def __init__(self, path, x_pos, y_pos, x_speed, y_speed):
-        super().__init__()
-        self.x_speed = x_speed
-        self.y_speed = y_speed
-        self.image = pygame.image.load(path)
-        self.rect = self.image.get_rect(center=(x_pos, y_pos))
-
-    def update(self, x_speed, y_speed):
-        self.rect.centerx += self.x_speed
-        self.rect.centery += self.y_speed
-
-        if self.rect.centery >= 800:
-            self.kill()
+    def uncharge(self):
+        self.image = pygame.image.load("Meteor Dodger Assets/spaceship.png")
 
 
 class Laser(pygame.sprite.Sprite):
     def __init__(self, path, pos, speed):
         super().__init__()
-        self.speed = speed
         self.image = pygame.image.load(path)
         self.rect = self.image.get_rect(center=pos)
+        self.speed = speed
 
     def update(self):
         self.rect.y -= self.speed
-        if self.rect.y <= -100:
+
+
+class Meteor(pygame.sprite.Sprite):
+    def __init__(self, path, pos_x, speed_x, speed_y):
+        super().__init__()
+        self.image = pygame.image.load(path)
+        self.rect = self.image.get_rect(center=(pos_x, -100))
+        self.speed_x = speed_x
+        self.speed_y = speed_y
+
+    def update(self):
+        self.rect.y += self.speed_y
+        self.rect.x += self.speed_x
+        if self.rect.y >= 1500:
             self.kill()
 
+
 def main_game():
-    laser_group.draw(DISPLAY_SURF)
-    spaceship_group.draw(DISPLAY_SURF)
-    meteor_group.draw(DISPLAY_SURF)
+    global laser_ready
+    player.draw(screen)
+    meteor_group.draw(screen)
+    laser_group.draw(screen)
 
+    player.update()
+    meteor_group.update()
     laser_group.update()
-    spaceship_group.update()
-    meteor_group.update(1, 1)
 
-    # collision
-    if pygame.sprite.spritecollide(spaceship_group.sprite, meteor_group, True):
-        spaceship_group.sprite.get_damage(1)
+    meteor_logic()
+    collision_logic(player, meteor_group, laser_group)
+    if pygame.time.get_ticks() - laser_shot >= 1000:
+        laser_ready = True
+        spaceship.charged_laser()
 
-    for laser in laser_group:
-        pygame.sprite.spritecollide(laser, meteor_group, True)
 
-def end_game():
-    text_surface = game_font.render('Game Over', True, (200, 170, 130))
-    text_rect = text_surface.get_rect(centre = (600, 1000))
-    DISPLAY_SURF.blit(text_surface,text_rect)
+def score_screen():
+    score_surface = game_font.render(f'High Score: {game_score}', True, (255, 255, 255))
+    score_rect = score_surface.get_rect(center=(640, 360))
+    screen.blit(score_surface, score_rect)
+
+
+def meteor_logic():
+    global meteor_ready
+    if meteor_ready:
+        random_meteor_image = random.choice(('Meteor Dodger Assets/Meteor1.png', 'Meteor Dodger Assets/Meteor2.png', 'Meteor Dodger Assets/Meteor3.png'))
+        random_x_pos = random.randrange(0, 1280)
+        random_speed_y = random.randint(3, 10)
+        random_speed_x = random.randint(-1, 1)
+        meteor = Meteor(random_meteor_image, random_x_pos, random_speed_x, random_speed_y)
+        meteor_group.add(meteor)
+
+        random_meteor_image = random.choice(('Meteor Dodger Assets/Meteor1.png', 'Meteor Dodger Assets/Meteor2.png', 'Meteor Dodger Assets/Meteor3.png'))
+        random_x_pos = random.randrange(0, 1280)
+        random_speed_y = random.randint(3, 10)
+        random_speed_x = random.randint(-1, 1)
+        meteor = Meteor(random_meteor_image, random_x_pos, random_speed_x, random_speed_y)
+        meteor_group.add(meteor)
+
+        meteor_ready = False
+
+
+def collision_logic(player, meteor, laser):
+    if pygame.sprite.spritecollide(player.sprite, meteor, True):
+        spaceship.damage()
+
+    for l in laser:
+        pygame.sprite.spritecollide(l, meteor, True)
+
 
 pygame.init()
-
-DISPLAY_SURF = pygame.display.set_mode((1280, 720))
-pygame.display.set_caption('Space Ship Shooter')
 clock = pygame.time.Clock()
-game_font = pygame.font.Font(None, 40)
+screen = pygame.display.set_mode((1280, 720))
+game_state = 'Main'
+game_score = 0
+game_font = pygame.font.Font(None, 80)
 
-spaceship = SpaceShip('Meteor Dodger Assets/spaceship.png', 640, 500, 2)
-spaceship_group = pygame.sprite.GroupSingle()
-spaceship_group.add(spaceship)
+spaceship = SpaceShip("spaceship.png", 640, 600, 5)
+player = pygame.sprite.GroupSingle()
+player.add(spaceship)
 
 laser_group = pygame.sprite.Group()
+laser_ready = True
+laser_shot = 0
 
+meteor_ready = True
 meteor_group = pygame.sprite.Group()
-METEOR_EVENT = pygame.USEREVENT
+
+METEOR_EVENT = pygame.USEREVENT + 1
 pygame.time.set_timer(METEOR_EVENT, 250)
 
-while True:  # main game loop
+while True:
     for event in pygame.event.get():
-        if event.type == QUIT:
+        if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RIGHT:
+                spaceship.movement += spaceship.speed
+            if event.key == pygame.K_LEFT:
+                spaceship.movement -= spaceship.speed
 
+            if event.key == pygame.K_SPACE and laser_ready:
+                laser_group.add(Laser('Laser.png', spaceship.rect.center, 15))
+                laser_ready = False
+                laser_shot = pygame.time.get_ticks()
+                spaceship.uncharge()
+
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_RIGHT:
+                spaceship.movement -= spaceship.speed
+            if event.key == pygame.K_LEFT:
+                spaceship.movement += spaceship.speed
         if event.type == METEOR_EVENT:
-            meteor_path = random.choice(('Meteor Dodger Assets/Meteor1.png', 'Meteor Dodger Assets/Meteor2.png',
-                                         'Meteor Dodger Assets/Meteor3.png'))
-            random_xpos = random.randrange(0, 1280)
-            random_ypos = random.randrange(-500, -50)
-            random_xspeed = random.randrange(-1, 1)
-            random_yspeed = random.randrange(4, 10)
-            meteor = Meteor(meteor_path, random_xpos, random_ypos, random_xspeed, random_yspeed)
-            meteor_group.add(meteor)
+            meteor_ready = True
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            new_laser = Laser('Meteor Dodger Assets/Laser.png', event.pos, 5)
-            laser_group.add(new_laser)
-
-    DISPLAY_SURF.fill((80, 125, 230))
-    if spaceship_group.sprite.health > 0:
+    screen.fill((42, 45, 51))
+    if game_state == 'Main':
         main_game()
+    elif game_state == 'Score':
+        score_screen()
 
-    else:
-        end_game()
-
-
-    pygame.display.update()
+    pygame.display.flip()
     clock.tick(120)
-
